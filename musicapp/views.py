@@ -16,7 +16,7 @@ class BaseView(CartMixin, views.View):
         albums = Album.objects.all().order_by('-id')[:5]
         context = {
             'albums': albums,
-            # 'cart': self.cart
+            'cart': self.cart
         }
         return render(request, 'base.html', context)
 
@@ -115,7 +115,7 @@ class CartView(CartMixin, views.View):
 class AddToCartView(CartMixin, views.View):
 
     def get(self, request, *args, **kwargs):
-        ct_model, product_slug = kwargs.get('ct_model', kwargs.get('slug'))
+        ct_model, product_slug = kwargs.get('ct_model'), kwargs.get('slug')
         content_type = ContentType.objects.get(model=ct_model)
         product = content_type.model_class().objects.get(slug=product_slug)
         cart_product, created = CartProduct.objects.get_or_create(
@@ -131,7 +131,7 @@ class AddToCartView(CartMixin, views.View):
 class DeleteFromCartView(CartMixin, views.View):
 
     def get(self, request, *args, **kwargs):
-        ct_model, product_slug = kwargs.get('ct_model', kwargs.get('slug'))
+        ct_model, product_slug = kwargs.get('ct_model'), kwargs.get('slug')
         content_type = ContentType.objects.get(model=ct_model)
         product = content_type.model_class().objects.get(slug=product_slug)
         cart_product, created = CartProduct.objects.get(
@@ -159,4 +159,13 @@ class ChangeQTYView(CartMixin, views.View):
         cart_product.save()
         recalc_cart(self.cart)
         messages.add_message(request, messages.INFO, 'Количество успешно изменено')
+        return HttpResponseRedirect(request.META['HTTP_REFERER'])
+
+
+class AddToWishList(views.View):
+    @staticmethod
+    def get(request, *args, **kwargs):
+        album = Album.objects.get(id=kwargs['album_id'])
+        customer = Customer.objects.get(user=request.user)
+        customer.wishlist.add(album)
         return HttpResponseRedirect(request.META['HTTP_REFERER'])

@@ -34,26 +34,93 @@
                     {% endif %}
                 </ul>
                 {% if request.user.is_authenticated %}
-                <form class="navbar-nav">
-                    <li class="nav-item"><a class="naw-link" href="{% url 'cart' %}"><i class="fas fa-shopping-cart"></i><span
-                            class="badge bg-danger"></span>{{ cart.products.count }}</a></li>
-                </form>
+                    <form class="navbar-nav">
+                        <li class="nav-item"><a class="naw-link" href="{% url 'cart' %}"><i
+                                class="fas fa-shopping-cart"></i><span
+                                class="badge bg-danger"></span>{{ cart.product.count }}</a></li>
+                    </form>
                 {% endif %}
             </div>
         </div>
     </nav>
 </head>
 
+<div class="container">
+    {% block content %}
+        <div class="col-md-12">
+            <div class="row">
+                {% for album in albums %}
 
-<body>
+                    <div class="card col-md-3 p-0 mb-3 mt-3">
+
+                        <img src="{{ album.image.url }}" class="card-img-top">
+                        <div class="card-body text-center">
+                            <h5 class="card-title"><a href="{{ album.artist.get_absolute_url }}"
+                                                      class="text-decoration-none">
+                                {{ album.artist.name }}
+                            </a></h5>
+                            <h5 class="card-title"><a href="{{ album.get_absolute_url }}" class="text-decoration-none">
+                                {{ album.name }}
+                            </a></h5>
+
+                        </div>
+                        <ul class="list-group list-group-flash">
+                            <li class="list-group-item">Носитель: <strong>{{ album.media_type.name }}</strong></li>
+                            <li class="list-group-item">Дата релиза:
+                                <strong>{{ album.release_date|date:'d-m-Y' }}</strong></li>
+                            <li class="list-group-item">Жанр: <strong>{{ album.artist.genre.name }}</strong></li>
+                            <li class="list-group-item">
+                                Наличие: {% if album.stock %} <strong class="badge bg-success">
+                                Есть в наличии - {{ album.stock }} шт.
+                            </strong>{% else %}
+                                <strong class="badge bg-danger">Нет в наличии</strong> </li>
+                            {% endif %}
+                        </ul>
+
+                        <div class="card-body text-center">
+                            {% if request.user.is_authenticated %}
+                                {% if album.stock %}
+                                    {% if album not in cart.product_in_cart %}
+                                        <a href="{% url 'add_to_cart' ct_model=album.ct_model slug=album.slug %}">
+                                            <button class="btn btn-primary">
+                                                Добавить в корзину
+                                            </button>
+                                        </a>
+                                    {% else %}
+                                        <a href="#" class="btn btn-default" disabled="">Добавлен в корзину</a>
+                                    {% endif %}
+                                {% else %}
+                                    {% if album not in request.user.customer.wishlist.all %}
+                                        <a href="{% url 'add_to_wishlist' album_id=album.id %}">
+                                            <button class="btn btn-warning">
+                                                Добавить в ожидание
+                                            </button>
+                                        </a>
+                                    {% else %}
+                                        <a href="#" class="btn btn-default" disabled="">Добавлен в ожидаемое</a>
+
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
+                                <a href="#" class="btn btn-default" disabled="">
+                                    Авторизуйтесь или зарегистрируйтесь.
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                {% endfor %}
 
 
-<div class="container"></div>
-{% block content %}
+            </div>
 
 
+        </div>
 
-{% endblock content %}
+
+    {% endblock content %}
+</div>
+
 
 </body>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"

@@ -16,11 +16,18 @@ class ImageGalleryInLine(GenericTabularInline):
 class AlbumAdmin(admin.ModelAdmin):
     inlines = [ImageGalleryInLine]
 
+    list_display = ('artist', 'name', 'release_date', 'price',)
+    list_filter = ('artist',)
+
+    search_fields = ['artist.genre.name', 'artist', 'media_type.name']
+    sortable_by = 'price'
 
 @admin.register(Artist)
 class ArtistAdmin(admin.ModelAdmin):
     inlines = [MembersInLine, ImageGalleryInLine]
     exclude = ('musician',)
+
+    # search_fields = ('','')
 
 
 admin.site.register(Musician)
