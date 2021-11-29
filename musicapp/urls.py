@@ -9,6 +9,7 @@ urlpatterns = [
     path('change-qty/<str:ct_model>/<str:slug>/', ChangeQTYView.as_view(), name="change_qty"),
     path('', BaseView.as_view(), name='base'),
     path('login/', LoginView.as_view(), name='login'),
+    path(r'activate/<uid64>/<token>/', activate_account, name='activate'),
     path('registration/', RegistrationView.as_view(), name='registration'),
     path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
     path('account/', AccountView.as_view(), name='account'),

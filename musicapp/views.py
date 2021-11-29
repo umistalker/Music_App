@@ -2,12 +2,18 @@ from django.shortcuts import render
 from django import views
 from .models import Artist, Album, Customer, CartProduct
 from django.contrib.auth import authenticate, login
-from django.http import HttpResponseRedirect
-from .forms import RegistrationForm, LoginForm
+from django.http import HttpResponseRedirect, HttpResponse
+from .forms import RegistrationForm, LoginForm, User
 from .mixins import *
 from django.contrib.contenttypes.models import ContentType
 from django.contrib import messages
 from utils import recalc_cart
+from .token_generator import account_activation_token
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.encoding import force_bytes, force_text
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.template.loader import render_to_string
+from django.core.mail import EmailMessage
 
 
 class BaseView(CartMixin, views.View):
@@ -74,6 +80,7 @@ class RegistrationView(views.View):
             new_user.email = form.cleaned_data['email']
             new_user.first_name = form.cleaned_data['first_name']
             new_user.last_name = form.cleaned_data['last_name']
+            new_user.is_active = False
             new_user.save()
             new_user.set_password(form.cleaned_data['password'])
             new_user.save()
@@ -82,14 +89,45 @@ class RegistrationView(views.View):
                 phone=form.cleaned_data['phone'],
                 address=form.cleaned_data['address'],
             )
-            user = authenticate(username=form.cleaned_data['username'], password=form.cleaned_data['password'])
-            login(request, user)
-            return HttpResponseRedirect('/')
-
+            # user = authenticate(username=form.cleaned_data['username'], password=form.cleaned_data['password'])
+            # login(request, user)
+            # return HttpResponseRedirect('/')
+            current_site = get_current_site(request)
+            email_subject = 'Activate your account'
+            message = render_to_string('activate_account.html', {
+                'user': new_user,
+                'domain': current_site.domain,
+                'uid': urlsafe_base64_encode(force_bytes(new_user.pk)),
+                'token': account_activation_token.make_token(new_user),
+            })
+            to_email = form.cleaned_data['email']
+            email = EmailMessage(email_subject, message, to=[to_email])
+            email.send()
+            context = {
+                'form': form
+            }
+            return render(request, 'confirmed_email.html', context)
         context = {
             'form': form
         }
         return render(request, 'registration.html', context)
+
+
+def activate_account(request, uid64, token):
+    try:
+        uid = force_bytes(urlsafe_base64_decode(uid64))
+        user = User.objects.get(pk=uid)
+    except(TypeError, ValueError, OverflowError, Customer.DoesNotExist):
+        user = None
+
+    if user is not None and account_activation_token.check_token(user, token):
+        user.is_active = True
+        user.save()
+        login(request, user)
+        context = {
+            'user': user
+        }
+        return render(request, 'confirmed_email.html', context)
 
 
 class AccountView(CartMixin, views.View):
